@@ -1,12 +1,7 @@
-# camel-undertow
 Camel Undertow component
 =======================
 
-
-Camel Component Project
-=======================
-This project is a template of a Camel component.
-To build this project use
-mvn install
-For more help see the Apache Camel documentation:
-http://camel.apache.org/writing-components.html
+The purpose of this master’s thesis is to design and develop
+new Camel component by integrating two open-source project Apache Camel
+and JBoss Undertow. This new component will act as HTTP provider in
+the Camel integration framework
