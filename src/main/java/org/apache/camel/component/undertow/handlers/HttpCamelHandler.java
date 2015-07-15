@@ -1,8 +1,30 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.camel.component.undertow.handlers;
+
+import java.nio.ByteBuffer;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
-import io.undertow.util.*;
+import io.undertow.util.Headers;
+import io.undertow.util.HttpString;
+import io.undertow.util.Methods;
+import io.undertow.util.MimeMappings;
+import io.undertow.util.StatusCodes;
 import org.apache.camel.Exchange;
 import org.apache.camel.TypeConverter;
 import org.apache.camel.component.undertow.ExchangeHeaders;
@@ -10,15 +32,11 @@ import org.apache.camel.component.undertow.UndertowConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-
 /**
  * Custom handler to process incoming HTTP request and prepare them
- * to be used in the Camel route
+ * to be used in the Camel route.
  *
- * This class can be considered part of UndertowConsumer implementation
- *
- * @author David Simansky | dsimansk@redhat.com
+ * This class can be considered part of UndertowConsumer implementation.
  */
 public class HttpCamelHandler implements HttpHandler {
     private static final Logger LOG = LoggerFactory.getLogger(UndertowConsumer.class);
@@ -54,8 +72,8 @@ public class HttpCamelHandler implements HttpHandler {
         }
 
         //reject if the method is not allowed
-        if (consumer.getEndpoint().getHttpMethodRestrict() != null &&
-                !consumer.getEndpoint().getHttpMethodRestrict().contains(requestMethod.toString())) {
+        if (consumer.getEndpoint().getHttpMethodRestrict() != null
+            && !consumer.getEndpoint().getHttpMethodRestrict().contains(requestMethod.toString())) {
             httpExchange.setResponseCode(StatusCodes.METHOD_NOT_ALLOWED);
             httpExchange.getResponseHeaders().put(ExchangeHeaders.CONTENT_TYPE, MimeMappings.DEFAULT_MIME_MAPPINGS.get("txt"));
             httpExchange.getResponseHeaders().put(ExchangeHeaders.CONTENT_LENGTH, 0);
@@ -64,7 +82,7 @@ public class HttpCamelHandler implements HttpHandler {
         }
 
         //perform blocking operation on exchange
-        if(httpExchange.isInIoThread()) {
+        if (httpExchange.isInIoThread()) {
             httpExchange.dispatch(this);
             return;
         }
@@ -107,6 +125,5 @@ public class HttpCamelHandler implements HttpHandler {
         }
         return result;
     }
-
 
 }

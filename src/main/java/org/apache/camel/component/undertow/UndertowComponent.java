@@ -1,4 +1,25 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.camel.component.undertow;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import javax.net.ssl.SSLContext;
 
 import io.undertow.Handlers;
 import io.undertow.Undertow;
@@ -7,7 +28,10 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.Consumer;
 import org.apache.camel.Endpoint;
 import org.apache.camel.Processor;
+import org.apache.camel.component.http.HttpBinding;
+import org.apache.camel.component.http.HttpClientConfigurer;
 import org.apache.camel.component.http.HttpComponent;
+import org.apache.camel.component.http.HttpConfiguration;
 import org.apache.camel.component.undertow.handlers.HttpCamelHandler;
 import org.apache.camel.component.undertow.handlers.NotFoundHandler;
 import org.apache.camel.spi.HeaderFilterStrategy;
@@ -17,23 +41,17 @@ import org.apache.camel.util.FileUtil;
 import org.apache.camel.util.URISupport;
 import org.apache.camel.util.UnsafeUriCharactersEncoder;
 import org.apache.camel.util.jsse.SSLContextParameters;
+import org.apache.commons.httpclient.HttpConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Represents the component that manages {@link UndertowEndpoint}.
  */
 public class UndertowComponent extends HttpComponent implements RestConsumerFactory {
-
     private static final Logger LOG = LoggerFactory.getLogger(UndertowEndpoint.class);
 
     private UndertowHttpBinding undertowHttpBinding;
-
     private Map<Integer, UndertowRegistry> serversRegistry = new HashMap<Integer, UndertowRegistry>();
 
     public UndertowComponent() {
@@ -48,10 +66,8 @@ public class UndertowComponent extends HttpComponent implements RestConsumerFact
         SSLContextParameters sslContextParameters = resolveAndRemoveReferenceParameter(parameters, "sslContextParametersRef", SSLContextParameters.class);
         Boolean throwExceptionOnFailure = getAndRemoveParameter(parameters, "throwExceptionOnFailure", Boolean.class);
         Boolean transferException = getAndRemoveParameter(parameters, "transferException", Boolean.class);
-
         String httpMethodRestrict = getAndRemoveParameter(parameters, "httpMethodRestrict", String.class);
 
-        System.out.println("Remaining: " + remaining);
         String address = remaining;
         URI httpUri = new URI(UnsafeUriCharactersEncoder.encodeHttpURI(address));
         URI endpointUri = URISupport.createRemainingURI(httpUri, parameters);
@@ -138,9 +154,7 @@ public class UndertowComponent extends HttpComponent implements RestConsumerFact
         setProperties(endpoint, parameters);
 
         Consumer consumer = endpoint.createConsumer(processor);
-
         return consumer;
-
     }
 
     @Override
@@ -172,7 +186,7 @@ public class UndertowComponent extends HttpComponent implements RestConsumerFact
                 path.addExactPath(httpUri.getPath(), new HttpCamelHandler(consumer));
 
             }
-            LOG.debug("::Rebuild for path: {}", httpUri.getPath());
+            LOG.debug("Rebuild for path: {}", httpUri.getPath());
         }
         result = result.setHandler(path);
         return result.build();
@@ -207,7 +221,7 @@ public class UndertowComponent extends HttpComponent implements RestConsumerFact
 
     public void startServer(UndertowConsumer consumer) {
         int port = consumer.getEndpoint().getHttpURI().getPort();
-        LOG.info("Starting server on port: {}",port);
+        LOG.info("Starting server on port: {}", port);
         UndertowRegistry undertowRegistry = serversRegistry.get(port);
 
         if (undertowRegistry.getServer() != null) {
@@ -219,4 +233,35 @@ public class UndertowComponent extends HttpComponent implements RestConsumerFact
         undertowRegistry.setServer(newServer);
     }
 
+    /**
+     * To use the custom HttpClientConfigurer to perform configuration of the HttpClient that will be used.
+     */
+    @Override
+    public void setHttpClientConfigurer(HttpClientConfigurer httpClientConfigurer) {
+        super.setHttpClientConfigurer(httpClientConfigurer);
+    }
+
+    /**
+     * To use a custom HttpConnectionManager to manage connections
+     */
+    @Override
+    public void setHttpConnectionManager(HttpConnectionManager httpConnectionManager) {
+        super.setHttpConnectionManager(httpConnectionManager);
+    }
+
+    /**
+     * To use a custom HttpBinding to control the mapping between Camel message and HttpClient.
+     */
+    @Override
+    public void setHttpBinding(HttpBinding httpBinding) {
+        super.setHttpBinding(httpBinding);
+    }
+
+    /**
+     * To use the shared HttpConfiguration as base configuration.
+     */
+    @Override
+    public void setHttpConfiguration(HttpConfiguration httpConfiguration) {
+        super.setHttpConfiguration(httpConfiguration);
+    }
 }

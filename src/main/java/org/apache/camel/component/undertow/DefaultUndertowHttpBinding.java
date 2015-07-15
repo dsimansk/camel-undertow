@@ -1,4 +1,29 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.camel.component.undertow;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.ByteBuffer;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.Map;
 
 import io.undertow.client.ClientExchange;
 import io.undertow.client.ClientRequest;
@@ -21,26 +46,32 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xnio.Pooled;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
-
 /**
- * @author David Simansky | dsimansk@redhat.com
+ * DefaultUndertowHttpBinding represent binding used by default, if user doesn't provide any.
+ * By default {@link HttpHeaderFilterStrategy} is also used.
  */
 public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultUndertowHttpBinding.class);
 
     //use default filter strategy from Camel HTTP
-    private HeaderFilterStrategy headerFilterStrategy = new HttpHeaderFilterStrategy();
+    private HeaderFilterStrategy headerFilterStrategy;
 
+    public DefaultUndertowHttpBinding() {
+        this.headerFilterStrategy = new HttpHeaderFilterStrategy();
+    }
+
+    public DefaultUndertowHttpBinding(HeaderFilterStrategy headerFilterStrategy) {
+        this.headerFilterStrategy = headerFilterStrategy;
+    }
+
+    public HeaderFilterStrategy getHeaderFilterStrategy() {
+        return headerFilterStrategy;
+    }
+
+    public void setHeaderFilterStrategy(HeaderFilterStrategy headerFilterStrategy) {
+        this.headerFilterStrategy = headerFilterStrategy;
+    }
 
     @Override
     public Message toCamelMessage(HttpServerExchange httpExchange, Exchange exchange) throws Exception {
@@ -70,7 +101,6 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
         result.setBody(readResponseBody(clientExchange));
 
         return result;
-
     }
 
     @Override
@@ -107,7 +137,7 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
                 // store a special header that this request was authenticated using HTTP Basic
                 if (value != null && value.trim().startsWith("Basic")) {
                     if (headerFilterStrategy != null
-                            && !headerFilterStrategy.applyFilterToExternalHeaders(Exchange.AUTHENTICATION, "Basic", exchange)) {
+                        && !headerFilterStrategy.applyFilterToExternalHeaders(Exchange.AUTHENTICATION, "Basic", exchange)) {
                         UndertowUtils.appendHeader(headersMap, Exchange.AUTHENTICATION, "Basic");
                     }
                 }
@@ -119,7 +149,7 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
                 Object value = it.next();
                 LOG.trace("HTTP-header: {}", value);
                 if (headerFilterStrategy != null
-                        && !headerFilterStrategy.applyFilterToExternalHeaders(name.toString(), value, exchange)) {
+                    && !headerFilterStrategy.applyFilterToExternalHeaders(name.toString(), value, exchange)) {
                     UndertowUtils.appendHeader(headersMap, name.toString(), value);
                 }
             }
@@ -138,13 +168,12 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
                     Object value = it.next();
                     LOG.trace("URI-Parameter: {}", value);
                     if (headerFilterStrategy != null
-                            && !headerFilterStrategy.applyFilterToExternalHeaders(name, value, exchange)) {
+                        && !headerFilterStrategy.applyFilterToExternalHeaders(name, value, exchange)) {
                         UndertowUtils.appendHeader(headersMap, name, value);
                     }
                 }
             }
         }
-
     }
 
     @Override
@@ -165,7 +194,7 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
                 // store a special header that this request was authenticated using HTTP Basic
                 if (value != null && value.trim().startsWith("Basic")) {
                     if (headerFilterStrategy != null
-                            && !headerFilterStrategy.applyFilterToExternalHeaders(Exchange.AUTHENTICATION, "Basic", exchange)) {
+                        && !headerFilterStrategy.applyFilterToExternalHeaders(Exchange.AUTHENTICATION, "Basic", exchange)) {
                         UndertowUtils.appendHeader(headersMap, Exchange.AUTHENTICATION, "Basic");
                     }
                 }
@@ -177,12 +206,11 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
                 Object value = it.next();
                 LOG.trace("HTTP-header: {}", value);
                 if (headerFilterStrategy != null
-                        && !headerFilterStrategy.applyFilterToExternalHeaders(name.toString(), value, exchange)) {
+                    && !headerFilterStrategy.applyFilterToExternalHeaders(name.toString(), value, exchange)) {
                     UndertowUtils.appendHeader(headersMap, name.toString(), value);
                 }
             }
         }
-
     }
 
     @Override
@@ -205,7 +233,7 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
             while (it.hasNext()) {
                 String headerValue = tc.convertTo(String.class, it.next());
                 if (headerValue != null && headerFilterStrategy != null
-                        && !headerFilterStrategy.applyFilterToCamelHeaders(key, headerValue, message.getExchange())) {
+                    && !headerFilterStrategy.applyFilterToCamelHeaders(key, headerValue, message.getExchange())) {
                     LOG.trace("HTTP-Header: {}={}", key, headerValue);
                     httpExchange.getResponseHeaders().add(new HttpString(key), headerValue);
                 }
@@ -236,7 +264,6 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
         }
 
         return message.getBody();
-
     }
 
     @Override
@@ -277,13 +304,12 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
             while (it.hasNext()) {
                 String headerValue = tc.convertTo(String.class, it.next());
                 if (headerValue != null && headerFilterStrategy != null
-                        && !headerFilterStrategy.applyFilterToCamelHeaders(key, headerValue, message.getExchange())) {
+                    && !headerFilterStrategy.applyFilterToCamelHeaders(key, headerValue, message.getExchange())) {
                     LOG.trace("HTTP-Header: {}={}", key, headerValue);
                     clientRequest.getRequestHeaders().add(new HttpString(key), headerValue);
                 }
             }
         }
-
 
         return body;
     }
@@ -321,6 +347,5 @@ public class DefaultUndertowHttpBinding implements UndertowHttpBinding {
         pooledByteBuffer.free();
         return bytes;
     }
-
 
 }

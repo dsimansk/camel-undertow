@@ -1,17 +1,33 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.camel.component.undertow;
 
-import io.undertow.Undertow;
-import org.apache.camel.RuntimeCamelException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import javax.net.ssl.SSLContext;
+
+import io.undertow.Undertow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * @author David Simansky | dsimansk@redhat.com
+ * This class is used to hold Undertow instances during runtime.
+ * One of the benefits is reuse of same TCP port for more endpoints.
  */
 public class UndertowRegistry {
 
@@ -42,14 +58,14 @@ public class UndertowRegistry {
     public void registerConsumer(UndertowConsumer consumer) {
         URI httpUri = consumer.getEndpoint().getHttpURI();
         if (host != null && !host.equals(httpUri.getHost())) {
-            throw new RuntimeCamelException("Can't register UndertowConsumer on different host and same port: {}" +host+" "+httpUri.getHost());
+            throw new IllegalArgumentException("Cannot register UndertowConsumer on different host and same port: {}" + host + " " + httpUri.getHost());
         } else {
             host = httpUri.getHost();
         }
         LOG.info("Adding consumer to consumerRegistry: {}", httpUri);
         consumersRegistry.put(httpUri, consumer);
         if (sslContext != null && consumer.getEndpoint().getSslContext() != null) {
-            throw new RuntimeCamelException("Can't register UndertowConsumer with different SSL config");
+            throw new IllegalArgumentException("Cannot register UndertowConsumer with different SSL config");
         }
 
     }
@@ -59,11 +75,11 @@ public class UndertowRegistry {
         if (consumersRegistry.containsKey(httpUri)) {
             consumersRegistry.remove(httpUri);
         } else {
-            throw new RuntimeCamelException("This consumer is not registered");
+            LOG.debug("Cannot unregister consumer {} as it was not registered", consumer);
         }
     }
 
-    public boolean isEmpty(){
+    public boolean isEmpty() {
         return consumersRegistry.isEmpty();
     }
 
